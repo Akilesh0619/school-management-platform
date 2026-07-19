@@ -39,6 +39,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+        if ("/".equals(path) || "/health".equals(path) || path.startsWith("/actuator")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // Rate limit by client IP address
         String clientIp = getClientIp(request);
         String key = "rate:limit:" + clientIp;

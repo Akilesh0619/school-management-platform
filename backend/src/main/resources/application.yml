@@ -62,9 +62,19 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    mail:
+      enabled: false  # Prevent unconfigured SMTP from failing health checks (503)
+    redis:
+      enabled: false # Prevent optional Redis connection loss from failing health checks (503)
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
 
 # Server Configuration
 server:
+  address: 0.0.0.0
   port: ${PORT:8080}
   error:
     include-message: always
