@@ -17,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -44,14 +45,15 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/",
-                    "/health",
-                    "/actuator/**",
-                    "/api/auth/**",
-                    "/api/files/download/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html"
+                    AntPathRequestMatcher.antMatcher("/"),
+                    AntPathRequestMatcher.antMatcher("/health"),
+                    AntPathRequestMatcher.antMatcher("/health/**"),
+                    AntPathRequestMatcher.antMatcher("/actuator/**"),
+                    AntPathRequestMatcher.antMatcher("/api/auth/**"),
+                    AntPathRequestMatcher.antMatcher("/api/files/download/**"),
+                    AntPathRequestMatcher.antMatcher("/v3/api-docs/**"),
+                    AntPathRequestMatcher.antMatcher("/swagger-ui/**"),
+                    AntPathRequestMatcher.antMatcher("/swagger-ui.html")
                 ).permitAll()
                 .anyRequest().authenticated()
             )
