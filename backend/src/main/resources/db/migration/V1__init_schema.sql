@@ -103,7 +103,7 @@ CREATE TABLE teachers (
 
 -- Add class teacher to sections
 ALTER TABLE sections ADD COLUMN class_teacher_id BIGINT;
-ALTER TABLE sections ADD FOREIGN KEY (class_teacher_id) REFERENCES teachers(id) ON DELETE SET NULL;
+ALTER TABLE sections ADD CONSTRAINT fk_sections_class_teacher FOREIGN KEY (class_teacher_id) REFERENCES teachers(id) ON DELETE SET NULL;
 
 CREATE TABLE parents (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
