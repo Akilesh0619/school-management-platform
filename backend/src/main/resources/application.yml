@@ -2,11 +2,11 @@ spring:
   application:
     name: school-management-system
   
-  # Database Configuration supporting Railway MySQL environment variables
+  # Database Configuration reading Railway injected environment variables directly
   datasource:
-    url: ${SPRING_DATASOURCE_URL:${MYSQL_URL:${DATABASE_URL:jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:school_db}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}}
-    username: ${SPRING_DATASOURCE_USERNAME:${MYSQLUSER:root}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${MYSQLPASSWORD:password}}
+    url: jdbc:mysql://${MYSQLHOST:${SPRING_DATASOURCE_HOST:localhost}}:${MYSQLPORT:${SPRING_DATASOURCE_PORT:3306}}/${MYSQLDATABASE:${SPRING_DATASOURCE_DB:school_db}}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQLUSER:${SPRING_DATASOURCE_USERNAME:root}}
+    password: ${MYSQLPASSWORD:${SPRING_DATASOURCE_PASSWORD:password}}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       initialization-fail-timeout: -1
