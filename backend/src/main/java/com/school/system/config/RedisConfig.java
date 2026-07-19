@@ -1,7 +1,9 @@
 package com.school.system.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -16,6 +18,7 @@ import java.time.Duration;
 
 @Configuration
 @EnableCaching
+@Slf4j
 public class RedisConfig {
 
     @Bean
@@ -26,20 +29,29 @@ public class RedisConfig {
         template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
-        template.afterPropertiesSet();
+        try {
+            template.afterPropertiesSet();
+        } catch (Exception e) {
+            log.warn("RedisTemplate initialization warning: {}", e.getMessage());
+        }
         return template;
     }
 
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(60)) // Default TTL 60 mins
-                .disableCachingNullValues()
-                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
+        try {
+            RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                    .entryTtl(Duration.ofMinutes(60))
+                    .disableCachingNullValues()
+                    .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
+                    .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
 
-        return RedisCacheManager.builder(connectionFactory)
-                .cacheDefaults(config)
-                .build();
+            return RedisCacheManager.builder(connectionFactory)
+                    .cacheDefaults(config)
+                    .build();
+        } catch (Exception e) {
+            log.warn("Failed to initialize RedisCacheManager. Falling back to in-memory ConcurrentMapCacheManager: {}", e.getMessage());
+            return new ConcurrentMapCacheManager();
+        }
     }
 }

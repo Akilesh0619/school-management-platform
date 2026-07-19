@@ -12,7 +12,7 @@ spring:
   # JPA / Hibernate Configuration
   jpa:
     hibernate:
-      ddl-auto: validate # Let Flyway handle the migrations
+      ddl-auto: none # Let Flyway handle the migrations
     show-sql: false
     properties:
       hibernate:

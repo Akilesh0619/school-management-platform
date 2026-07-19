@@ -1,10 +1,11 @@
 package com.school.system.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.env.Environment;
 
 import javax.sql.DataSource;
 
@@ -12,26 +13,59 @@ import javax.sql.DataSource;
 @Slf4j
 public class DataSourceConfig {
 
+    private final Environment env;
+
+    public DataSourceConfig(Environment env) {
+        this.env = env;
+    }
+
     @Bean
     @Primary
-    public DataSource dataSource(DataSourceProperties properties) {
-        String url = properties.getUrl();
-        log.info("Initializing DataSource with URL pattern: {}", url);
-
-        if (url != null) {
-            // Fix Railway's default mysql:// scheme to jdbc:mysql://
-            if (url.startsWith("mysql://")) {
-                url = "jdbc:" + url;
-            }
-            // Append required MySQL flags if missing
-            if (!url.contains("allowPublicKeyRetrieval")) {
-                String separator = url.contains("?") ? "&" : "?";
-                url = url + separator + "createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-            }
-            properties.setUrl(url);
-            log.info("Sanitized JDBC URL for Railway MySQL: {}", url);
+    public DataSource dataSource() {
+        String url = env.getProperty("SPRING_DATASOURCE_URL");
+        if (url == null || url.trim().isEmpty()) {
+            url = env.getProperty("MYSQL_URL");
+        }
+        if (url == null || url.trim().isEmpty()) {
+            url = env.getProperty("DATABASE_URL");
         }
 
-        return properties.initializeDataSourceBuilder().build();
+        if (url == null || url.trim().isEmpty()) {
+            String host = env.getProperty("MYSQLHOST", "localhost");
+            String port = env.getProperty("MYSQLPORT", "3306");
+            String db = env.getProperty("MYSQLDATABASE", "school_db");
+            url = "jdbc:mysql://" + host + ":" + port + "/" + db;
+        }
+
+        // Fix Railway's default mysql:// scheme to jdbc:mysql://
+        if (url.startsWith("mysql://")) {
+            url = "jdbc:" + url;
+        }
+
+        // Append required MySQL flags if missing
+        if (!url.contains("allowPublicKeyRetrieval")) {
+            String separator = url.contains("?") ? "&" : "?";
+            url = url + separator + "createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+        }
+
+        String username = env.getProperty("SPRING_DATASOURCE_USERNAME");
+        if (username == null || username.trim().isEmpty()) {
+            username = env.getProperty("MYSQLUSER", "root");
+        }
+
+        String password = env.getProperty("SPRING_DATASOURCE_PASSWORD");
+        if (password == null) {
+            password = env.getProperty("MYSQLPASSWORD", "password");
+        }
+
+        log.info("Resolved production JDBC URL for Railway: {}", url);
+        log.info("Resolved Database Username: {}", username);
+
+        return DataSourceBuilder.create()
+                .driverClassName("com.mysql.cj.jdbc.Driver")
+                .url(url)
+                .username(username)
+                .password(password)
+                .build();
     }
 }
