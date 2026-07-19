@@ -2,11 +2,11 @@ spring:
   application:
     name: school-management-system
   
-  # Database Configuration
+  # Database Configuration supporting Railway MySQL environment variables
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/school_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    url: ${SPRING_DATASOURCE_URL:${MYSQL_URL:${DATABASE_URL:jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:school_db}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}}
+    username: ${SPRING_DATASOURCE_USERNAME:${MYSQLUSER:root}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${MYSQLPASSWORD:password}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   
   # JPA / Hibernate Configuration
@@ -26,12 +26,12 @@ spring:
     baseline-version: 0
     locations: classpath:db/migration
   
-  # Redis Cache & Session Configuration
+  # Redis Cache & Session Configuration supporting Railway Redis
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: ${SPRING_REDIS_PORT:6379}
-      password: ${SPRING_REDIS_PASSWORD:}
+      host: ${SPRING_REDIS_HOST:${REDISHOST:localhost}}
+      port: ${SPRING_REDIS_PORT:${REDISPORT:6379}}
+      password: ${SPRING_REDIS_PASSWORD:${REDISPASSWORD:}}
   
   # Email Configuration
   mail:
@@ -52,6 +52,16 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 5MB
+
+# Actuator Health Check Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+  endpoint:
+    health:
+      show-details: always
 
 # Server Configuration
 server:

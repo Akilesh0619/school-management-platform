@@ -1,0 +1,8 @@
+[providers]
+name = "java"
+
+[phases.build]
+cmds = ["mvn clean package -DskipTests -f backend/pom.xml"]
+
+[start]
+cmd = "java -jar backend/target/*.jar"

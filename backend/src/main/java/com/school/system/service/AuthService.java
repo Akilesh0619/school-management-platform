@@ -114,12 +114,16 @@ public class AuthService {
         refreshTokenRepository.save(refreshToken);
         
         // Cache refresh token in Redis for O(1) verify
-        redisTemplate.opsForValue().set(
-                "refresh:token:" + refreshTokenString, 
-                user.getUsername(), 
-                refreshTokenDurationMs, 
-                TimeUnit.MILLISECONDS
-        );
+        try {
+            redisTemplate.opsForValue().set(
+                    "refresh:token:" + refreshTokenString, 
+                    user.getUsername(), 
+                    refreshTokenDurationMs, 
+                    TimeUnit.MILLISECONDS
+            );
+        } catch (Exception e) {
+            log.warn("Redis unavailable for caching refresh token: {}. Using DB storage.", e.getMessage());
+        }
 
         List<String> rolesList = user.getRoles().stream().map(r -> r.getName()).toList();
         auditLogService.log(user.getUsername(), "LOGIN_SUCCESS", "Successfully logged in", ipAddress);
@@ -139,20 +143,19 @@ public class AuthService {
         String requestToken = request.getRefreshToken();
         
         // Check Redis cache first, fall back to DB
-        String username = redisTemplate.opsForValue().get("refresh:token:" + requestToken);
-        RefreshToken refreshToken;
-        
-        if (username != null) {
-            refreshToken = refreshTokenRepository.findByToken(requestToken)
-                    .orElseThrow(() -> new UnauthorizedException("Invalid Refresh Token"));
-        } else {
-            refreshToken = refreshTokenRepository.findByToken(requestToken)
-                    .orElseThrow(() -> new UnauthorizedException("Invalid Refresh Token"));
+        String username = null;
+        try {
+            username = redisTemplate.opsForValue().get("refresh:token:" + requestToken);
+        } catch (Exception e) {
+            log.warn("Redis unavailable during token refresh check: {}", e.getMessage());
         }
+
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(requestToken)
+                .orElseThrow(() -> new UnauthorizedException("Invalid Refresh Token"));
 
         if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(refreshToken);
-            redisTemplate.delete("refresh:token:" + requestToken);
+            try { redisTemplate.delete("refresh:token:" + requestToken); } catch (Exception ignored) {}
             throw new UnauthorizedException("Refresh Token has expired. Please sign in again.");
         }
 
@@ -163,7 +166,7 @@ public class AuthService {
 
         // Delete old token
         refreshTokenRepository.delete(refreshToken);
-        redisTemplate.delete("refresh:token:" + requestToken);
+        try { redisTemplate.delete("refresh:token:" + requestToken); } catch (Exception ignored) {}
 
         // Create rotated new refresh token
         RefreshToken newRefreshToken = RefreshToken.builder()
@@ -173,12 +176,16 @@ public class AuthService {
                 .build();
         refreshTokenRepository.save(newRefreshToken);
 
-        redisTemplate.opsForValue().set(
-                "refresh:token:" + newRefreshTokenString, 
-                user.getUsername(), 
-                refreshTokenDurationMs, 
-                TimeUnit.MILLISECONDS
-        );
+        try {
+            redisTemplate.opsForValue().set(
+                    "refresh:token:" + newRefreshTokenString, 
+                    user.getUsername(), 
+                    refreshTokenDurationMs, 
+                    TimeUnit.MILLISECONDS
+            );
+        } catch (Exception e) {
+            log.warn("Redis unavailable for caching rotated token: {}", e.getMessage());
+        }
 
         auditLogService.log(user.getUsername(), "TOKEN_REFRESH", "Rotated refresh token", ipAddress);
         return new TokenRefreshResponse(newAccessToken, newRefreshTokenString);
@@ -190,7 +197,7 @@ public class AuthService {
         if (tokenOpt.isPresent()) {
             User user = tokenOpt.get().getUser();
             refreshTokenRepository.deleteByUser(user);
-            redisTemplate.delete("refresh:token:" + refreshTokenString);
+            try { redisTemplate.delete("refresh:token:" + refreshTokenString); } catch (Exception ignored) {}
             auditLogService.log(user.getUsername(), "LOGOUT", "Logged out successfully", ipAddress);
         }
     }
