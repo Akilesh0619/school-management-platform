@@ -1,7 +1,8 @@
 package com.school.system.config;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -58,14 +59,21 @@ public class DataSourceConfig {
             password = env.getProperty("MYSQLPASSWORD", "password");
         }
 
-        log.info("Resolved production JDBC URL for Railway: {}", url);
-        log.info("Resolved Database Username: {}", username);
+        log.info("Configuring HikariDataSource for Railway JDBC URL: {}", url);
+        log.info("Configuring Database User: {}", username);
 
-        return DataSourceBuilder.create()
-                .driverClassName("com.mysql.cj.jdbc.Driver")
-                .url(url)
-                .username(username)
-                .password(password)
-                .build();
+        HikariConfig config = new HikariConfig();
+        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+        config.setJdbcUrl(url);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setInitializationFailTimeout(-1); // Do not crash Spring context startup if DB connection is delayed
+        config.setMaximumPoolSize(10);
+        config.setMinimumIdle(2);
+        config.setConnectionTimeout(30000);
+        config.setIdleTimeout(600000);
+        config.setMaxLifetime(1800000);
+
+        return new HikariDataSource(config);
     }
 }

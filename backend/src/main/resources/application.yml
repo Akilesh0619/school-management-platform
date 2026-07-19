@@ -8,6 +8,8 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:${MYSQLUSER:root}}
     password: ${SPRING_DATASOURCE_PASSWORD:${MYSQLPASSWORD:password}}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      initialization-fail-timeout: -1
   
   # JPA / Hibernate Configuration
   jpa:
@@ -25,6 +27,7 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
+    connect-retries: 10
   
   # Redis Cache & Session Configuration supporting Railway Redis
   data:
